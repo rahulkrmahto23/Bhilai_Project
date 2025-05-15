@@ -34,7 +34,7 @@ const SignupPage = () => {
       const res = await signupUser(name, email, password); // role defaults to CLIENT
       setSuccess(res.message);
       setTimeout(() => {
-        navigate('/login');
+        navigate('/permit');
       }, 2000);
     } catch (err) {
       setError(err.message);
