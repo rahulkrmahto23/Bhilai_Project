@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Container, Form, Button, InputGroup, Alert } from 'react-bootstrap';
+import { Container, Form, Button, InputGroup } from 'react-bootstrap';
 import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
-import { signupUser } from '../helpers/user-api'; // adjust path if needed
+import { signupUser } from '../helpers/user-api';
 import { useNavigate } from 'react-router-dom';
+import toast, { Toaster } from 'react-hot-toast';  // <-- import toast and Toaster
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -12,32 +13,29 @@ const SignupPage = () => {
     confirmPassword: '',
   });
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
-    setSuccess('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      return setError("Passwords do not match");
+      toast.error("Passwords do not match");
+      return;
     }
 
     try {
       const { name, email, password } = formData;
-      const res = await signupUser(name, email, password); // role defaults to CLIENT
-      setSuccess(res.message);
+      const res = await signupUser(name, email, password);
+      toast.success(res.message || "Signup successful!");
       setTimeout(() => {
         navigate('/permit');
       }, 2000);
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message || "Signup failed. Please try again.");
     }
   };
 
@@ -61,6 +59,9 @@ const SignupPage = () => {
 
   return (
     <div style={backgroundStyle}>
+      {/* Place the Toaster once in your app */}
+      <Toaster position="top-center" reverseOrder={false} />
+
       <div style={formBoxStyle}>
         <div style={{ fontSize: '40px', color: '#0d6efd', marginBottom: '10px' }}>
           <FaUser />
@@ -68,9 +69,6 @@ const SignupPage = () => {
         <h4 className="mb-4">SIGN UP</h4>
 
         <Form onSubmit={handleSubmit}>
-          {error && <Alert variant="danger">{error}</Alert>}
-          {success && <Alert variant="success">{success}</Alert>}
-
           <Form.Group className="mb-3" controlId="signupUsername">
             <InputGroup>
               <InputGroup.Text><FaUser /></InputGroup.Text>

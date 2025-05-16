@@ -3,24 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Form, Button, InputGroup } from 'react-bootstrap';
 import { FaUser, FaLock } from 'react-icons/fa';
 import { loginUser } from '../helpers/user-api'; // Adjust path if needed
+import toast, { Toaster } from 'react-hot-toast';
 
 const LoginPage = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     try {
       const response = await loginUser(email, password);
       if (response.success) {
-        navigate('/permit'); // ✅ Redirect after successful login
+        toast.success('Login successful! Redirecting...');
+        setTimeout(() => {
+          navigate('/permit'); // Redirect after toast
+        }, 1500);
       }
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message || 'Login failed. Please try again.');
     }
   };
 
@@ -46,6 +48,7 @@ const LoginPage = () => {
 
   return (
     <div style={backgroundStyle}>
+      <Toaster position="top-center" reverseOrder={false} />
       <div style={formBoxStyle}>
         <div style={{ fontSize: '40px', color: '#0d6efd', marginBottom: '10px' }}>
           <FaUser />
@@ -83,8 +86,6 @@ const LoginPage = () => {
             <Form.Check type="checkbox" label="Keep me logged in" />
             <a href="#" style={{ fontSize: '0.9rem' }}>Forgot Password?</a>
           </div>
-
-          {error && <div className="text-danger mb-3">{error}</div>}
 
           <Button variant="primary" type="submit" className="w-100 mb-3">
             Login

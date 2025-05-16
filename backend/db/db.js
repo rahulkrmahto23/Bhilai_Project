@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const mongoURL = process.env.MONGO_URL_ATLAS;
-
+//const mongoURL = process.env.MONGO_URL_LOCAL;
 if (!mongoURL) {
   console.error("Mongodb URL connection is misssing.");
   process.exit(1);
