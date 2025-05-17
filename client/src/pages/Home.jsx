@@ -1,24 +1,25 @@
 import React from 'react';
 import { Container, Row, Col, Button, Form } from 'react-bootstrap';
+import home from '../assets/home.jpg';
 
 const HomePage = () => {
   return (
     <div className="steel-hero-section text-white d-flex align-items-center" style={{ minHeight: '90vh', backgroundColor: '#2c3e50' }}>
       <Container>
-        <Row className="align-items-center">
+        <Row className="align-items-center flex-column-reverse flex-md-row">
           {/* Text Section */}
-          <Col md={6}>
+          <Col md={6} className="text-center text-md-start mt-4 mt-md-0">
             <h1 className="mb-4">
               We help to <span className="highlight">educate</span> and <span className="highlight">engage</span> the market.
             </h1>
             <p className="mb-4">
               Search, browse and find new micro income stream projects. Create your profile now and learn about projects at the topline.
             </p>
-            <Form className="d-flex">
+            <Form className="d-flex flex-column flex-sm-row align-items-stretch">
               <Form.Control
                 type="email"
                 placeholder="Enter your email address..."
-                className="me-2"
+                className="me-sm-2 mb-2 mb-sm-0"
               />
               <Button variant="primary">Get Started</Button>
             </Form>
@@ -27,7 +28,7 @@ const HomePage = () => {
           {/* Illustration */}
           <Col md={6} className="text-center">
             <img
-              src="/illustration-steel.png"
+              src={home}
               alt="People Illustration"
               className="img-fluid"
               style={{ maxHeight: '400px' }}

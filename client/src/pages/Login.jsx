@@ -10,6 +10,7 @@ const LoginPage = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,6 +18,12 @@ const LoginPage = () => {
       const response = await loginUser(email, password);
       if (response.success) {
         toast.success('Login successful! Redirecting...');
+
+        // Save token to storage based on "keep me logged in"
+        const storage = keepLoggedIn ? localStorage : sessionStorage;
+        storage.setItem('token', response.token);
+        storage.setItem('user', JSON.stringify(response.user));
+
         setTimeout(() => {
           navigate('/permit'); // Redirect after toast
         }, 1500);
@@ -83,7 +90,12 @@ const LoginPage = () => {
           </Form.Group>
 
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <Form.Check type="checkbox" label="Keep me logged in" />
+            <Form.Check
+              type="checkbox"
+              label="Keep me logged in"
+              checked={keepLoggedIn}
+              onChange={(e) => setKeepLoggedIn(e.target.checked)}
+            />
             <a href="#" style={{ fontSize: '0.9rem' }}>Forgot Password?</a>
           </div>
 
