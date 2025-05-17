@@ -72,7 +72,12 @@ const PermitsTable = () => {
   };
 
   const handleEditClick = (permit) => {
-    setSelectedPermit(permit);
+    setSelectedPermit({
+      ...permit,
+      _id: permit._id, // Ensure _id is properly passed
+      issueDate: new Date(permit.issueDate),
+      expiryDate: new Date(permit.expiryDate),
+    });
     setShowEditModal(true);
   };
 

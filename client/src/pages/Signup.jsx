@@ -130,7 +130,7 @@ const SignupPage = () => {
           </Button>
 
           <div style={{ fontSize: '0.9rem' }}>
-            Already have an account? <a href="/">Login</a>
+            Already have an account? <a href="/login">Login</a>
           </div>
         </Form>
       </div>

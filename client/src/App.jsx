@@ -8,13 +8,15 @@ import SignupPage from './pages/Signup';
 import PermitsTable from './pages/PermitsTable';
 import Search from './pages/Search';
 import AddPermitForm from './pages/AddPermitForm';
+import HomePage from './pages/Home';
 
 function App() {
   return (
     <Router>
       <Header />
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/permit" element={<PermitsTable />} />
         <Route path="/search" element={<Search />} />

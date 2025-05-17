@@ -1,64 +1,66 @@
-  // AddPermitForm.jsx
-  import React, { useState, useEffect } from "react";
-  import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
-  import DatePicker from "react-datepicker";
-  import "react-datepicker/dist/react-datepicker.css";
-  import { createPermit, updatePermit } from "../helpers/user-api"; // Make sure path is correct
+import React, { useState, useEffect } from "react";
+import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { createPermit, updatePermit } from "../helpers/user-api";
 
-  const AddPermitForm = ({ defaultValues, onClose, onUpdate }) => {
-    const [formData, setFormData] = useState({
-      permitNumber: "",
-      poNumber: "",
-      employeeName: "",
-      permitType: "",
-      permitStatus: "Pending",
-      location: "",
-      remarks: "",
-      issueDate: new Date(),
-      expiryDate: new Date(),
-    });
+const AddPermitForm = ({ defaultValues, onClose, onPermitUpdated }) => {
+  const [formData, setFormData] = useState({
+    permitNumber: "",
+    poNumber: "",
+    employeeName: "",
+    permitType: "",
+    permitStatus: "Pending",
+    location: "",
+    remarks: "",
+    issueDate: new Date(),
+    expiryDate: new Date(),
+  });
 
-    useEffect(() => {
+  useEffect(() => {
+    if (defaultValues) {
+      setFormData({
+        permitNumber: defaultValues.permitNumber || "",
+        poNumber: defaultValues.poNumber || "",
+        employeeName: defaultValues.employeeName || "",
+        permitType: defaultValues.permitType || "",
+        permitStatus: defaultValues.permitStatus || "Pending",
+        location: defaultValues.location || "",
+        remarks: defaultValues.remarks || "",
+        issueDate: new Date(defaultValues.issueDate || new Date()),
+        expiryDate: new Date(defaultValues.expiryDate || new Date()),
+      });
+    }
+  }, [defaultValues]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleDateChange = (date, name) => {
+    setFormData({ ...formData, [name]: date });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
       if (defaultValues) {
-        setFormData({
-          ...defaultValues,
-          issueDate: new Date(defaultValues.issueDate || new Date()),
-          expiryDate: new Date(defaultValues.expiryDate || new Date()),
-        });
+        // Update existing permit - extract only the changed fields
+        const { _id, ...updateData } = formData;
+        const response = await updatePermit(defaultValues._id, updateData);
+        console.log("Permit updated:", response.permit);
+        if (onPermitUpdated) onPermitUpdated();
+      } else {
+        // Create new permit
+        const response = await createPermit(formData);
+        console.log("Permit created:", response.permit);
       }
-    }, [defaultValues]);
-
-    const handleChange = (e) => {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleDateChange = (date, name) => {
-      setFormData({ ...formData, [name]: date });
-    };
-
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      try {
-        console.log("📦 Submitting Permit:", formData);
-
-        if (defaultValues) {
-          // Update existing permit
-          const response = await updatePermit(formData);
-          console.log("Permit updated:", response.permit);
-          alert("Permit successfully updated!");
-          if (onUpdate) onUpdate(response.permit);
-        } else {
-          // Create new permit
-          const response = await createPermit(formData);
-          console.log("Permit created:", response.permit);
-          alert("Permit successfully added!");
-        }
-        onClose();
-      } catch (error) {
-        console.error("❌ Error submitting permit:", error);
-        alert("Failed to submit permit. Please try again.");
-      }
-    };
+      onClose();
+    } catch (error) {
+      console.error("Error submitting permit:", error);
+      alert(error.message || "Failed to submit permit. Please try again.");
+    }
+  };
 
     return (
       <Container className="py-3">

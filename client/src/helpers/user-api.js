@@ -114,22 +114,53 @@ export const deletePermit = async (id) => {
       permit: res.data.permit,
     };
   } catch (error) {
-    console.error("Delete Permit Error:", error.response?.data || error.message);
+    console.error(
+      "Delete Permit Error:",
+      error.response?.data || error.message
+    );
     throw new Error(error.response?.data?.message || "Unable to delete permit");
   }
 };
 
 // Search permits by query
-export const searchPermits = async (query) => {
+
+export const searchPermits = async (queryParams) => {
   try {
-    const res = await apiClient.get(`/search-permits?query=${encodeURIComponent(query)}`);
+    // Prepare query parameters
+    const params = {};
+    
+    if (queryParams.poNumber) params.poNumber = queryParams.poNumber;
+    if (queryParams.permitNumber) params.permitNumber = queryParams.permitNumber;
+    if (queryParams.permitStatus && queryParams.permitStatus !== 'ALL') {
+      params.permitStatus = queryParams.permitStatus;
+    }
+    
+    // Date handling
+    if (queryParams.startDate) {
+      params.startDate = queryParams.startDate.toISOString();
+    }
+    if (queryParams.endDate) {
+      params.endDate = queryParams.endDate.toISOString();
+    }
+
+    const response = await apiClient.get("/search-permits", { params });
+
+    // Ensure response has the expected structure
+    if (!response.data) {
+      throw new Error("Invalid response from server");
+    }
+
     return {
       success: true,
-      message: res.data.message,
-      permits: res.data.permits,
+      message: response.data.message || "Search completed",
+      permits: response.data.permits || []
     };
   } catch (error) {
-    console.error("Search Permit Error:", error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || "Unable to search permits");
+    console.error("Search Permit Error:", error);
+    throw new Error(
+      error.response?.data?.message || 
+      error.message || 
+      "Unable to search permits"
+    );
   }
 };

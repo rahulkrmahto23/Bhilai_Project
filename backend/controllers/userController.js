@@ -152,17 +152,21 @@ exports.editPermit = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Optional: Validate user access (e.g., only the creator or admin can edit)
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized: No user context" });
     }
 
-    const updatedData = req.body;
+    // Filter out any fields that shouldn't be updated
+    const { _id, createdBy, ...updatedData } = req.body;
 
-    const updatedPermit = await Permit.findByIdAndUpdate(id, updatedData, {
-      new: true, // returns the updated document
-      runValidators: true, // ensure validation rules apply
-    });
+    const updatedPermit = await Permit.findByIdAndUpdate(
+      id,
+      updatedData,
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).populate("createdBy", "name email role");
 
     if (!updatedPermit) {
       return res.status(404).json({ message: "Permit not found" });
@@ -173,8 +177,11 @@ exports.editPermit = async (req, res) => {
       permit: updatedPermit,
     });
   } catch (error) {
-    console.error("🚨 Error updating permit:", error);
-    return res.status(500).json({ message: "Error updating permit", error: error.message });
+    console.error("Error updating permit:", error);
+    return res.status(500).json({ 
+      message: "Error updating permit", 
+      error: error.message 
+    });
   }
 };
 exports.deletePermit = async (req, res) => {
@@ -204,34 +211,45 @@ exports.deletePermit = async (req, res) => {
 
 exports.searchPermits = async (req, res) => {
   try {
-    const { query } = req.query; // expects: /api/permits/search?query=someValue
+    const { poNumber, permitNumber, permitStatus, startDate, endDate } = req.query;
 
-    if (!query) {
-      return res.status(400).json({ message: "No search query provided" });
+    // Build the search query dynamically
+    const searchQuery = {};
+    
+    if (poNumber) searchQuery.poNumber = { $regex: poNumber, $options: 'i' };
+    if (permitNumber) searchQuery.permitNumber = { $regex: permitNumber, $options: 'i' };
+    if (permitStatus && permitStatus !== 'ALL') {
+      searchQuery.permitStatus = { $regex: permitStatus, $options: 'i' };
+    }
+    
+    // Date range handling
+    if (startDate || endDate) {
+      searchQuery.issueDate = {};
+      if (startDate) searchQuery.issueDate.$gte = new Date(startDate);
+      if (endDate) searchQuery.issueDate.$lte = new Date(endDate);
     }
 
-    const searchRegex = new RegExp(query, "i"); // case-insensitive search
+    // Execute query with proper error handling
+    const permits = await Permit.find(searchQuery)
+      .populate("createdBy", "name email role")
+      .lean(); // Convert to plain JavaScript objects
 
-    const permits = await Permit.find({
-      $or: [
-        { permitNumber: searchRegex },
-        { poNumber: searchRegex },
-        { employeeName: searchRegex },
-        { permitType: searchRegex },
-        { permitStatus: searchRegex },
-        { location: searchRegex },
-        { remarks: searchRegex },
-        { issueDate: searchRegex },
-        { expiryDate: searchRegex },
-      ],
-    }).populate("createdBy", "name email role");
+    if (!permits || permits.length === 0) {
+      return res.status(200).json({
+        message: "No permits found matching your criteria",
+        permits: []
+      });
+    }
 
     return res.status(200).json({
       message: "Search results fetched successfully",
       permits,
     });
   } catch (error) {
-    console.error("🚨 Error searching permits:", error);
-    return res.status(500).json({ message: "Error searching permits", error: error.message });
+    console.error("Error searching permits:", error);
+    return res.status(500).json({ 
+      message: "Error searching permits", 
+      error: error.message 
+    });
   }
 };
