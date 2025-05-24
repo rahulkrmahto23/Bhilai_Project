@@ -1,69 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Form, Button, InputGroup } from 'react-bootstrap';
 import { FaUser, FaLock } from 'react-icons/fa';
-import { loginUser, verifyAuth } from '../helpers/user-api';
+import { loginUser } from '../helpers/user-api'; // Adjust path if needed
 import toast, { Toaster } from 'react-hot-toast';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const authStatus = await verifyAuth();
-        if (authStatus.isAuthenticated) {
-          navigate('/permit');
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await loginUser(email, password, keepLoggedIn);
+      const response = await loginUser(email, password);
       if (response.success) {
         toast.success('Login successful! Redirecting...');
-        setTimeout(() => navigate('/permit'), 1000);
+
+        // Save token to storage based on "keep me logged in"
+        const storage = keepLoggedIn ? localStorage : sessionStorage;
+        storage.setItem('token', response.token);
+        storage.setItem('user', JSON.stringify(response.user));
+
+        setTimeout(() => {
+          navigate('/permit'); // Redirect after toast
+        }, 1500);
       }
     } catch (err) {
       toast.error(err.message || 'Login failed. Please try again.');
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
-  }
+  const backgroundStyle = {
+    minHeight: '90vh',
+    backgroundImage: 'url("/background.jpg")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const formBoxStyle = {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: '40px',
+    borderRadius: '10px',
+    boxShadow: '0px 0px 10px rgba(0,0,0,0.3)',
+    maxWidth: '400px',
+    width: '100%',
+    textAlign: 'center',
+  };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
-      <Toaster position="top-center" />
-      <div className="bg-white p-4 rounded shadow-sm" style={{ width: '100%', maxWidth: '400px' }}>
-        <div className="text-center mb-4">
-          <FaUser size={40} className="text-primary mb-2" />
-          <h4>LOGIN e-PTW</h4>
+    <div style={backgroundStyle}>
+      <Toaster position="top-center" reverseOrder={false} />
+      <div style={formBoxStyle}>
+        <div style={{ fontSize: '40px', color: '#0d6efd', marginBottom: '10px' }}>
+          <FaUser />
         </div>
+        <h4 className="mb-4">LOGIN e-PTW</h4>
 
         <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
+          <Form.Group className="mb-3" controlId="formEmail">
             <InputGroup>
               <InputGroup.Text><FaUser /></InputGroup.Text>
               <Form.Control
@@ -76,7 +76,7 @@ const LoginPage = () => {
             </InputGroup>
           </Form.Group>
 
-          <Form.Group className="mb-3">
+          <Form.Group className="mb-3" controlId="formPassword">
             <InputGroup>
               <InputGroup.Text><FaLock /></InputGroup.Text>
               <Form.Control
@@ -96,11 +96,16 @@ const LoginPage = () => {
               checked={keepLoggedIn}
               onChange={(e) => setKeepLoggedIn(e.target.checked)}
             />
+            <a href="#" style={{ fontSize: '0.9rem' }}>Forgot Password?</a>
           </div>
 
-          <Button type="submit" variant="primary" className="w-100 mb-3">
+          <Button variant="primary" type="submit" className="w-100 mb-3">
             Login
           </Button>
+
+          <div style={{ fontSize: '0.9rem' }}>
+            Don't have an account? <a href="/signup">Sign Up</a>
+          </div>
         </Form>
       </div>
     </div>
