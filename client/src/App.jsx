@@ -9,6 +9,7 @@ import PermitsTable from './pages/PermitsTable';
 import Search from './pages/Search';
 import AddPermitForm from './pages/AddPermitForm';
 import HomePage from './pages/Home';
+import Footer from './component/Footer';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/add-permit" element={<AddPermitForm />} />
       </Routes>
+      <Footer />
     </Router>
   );
 }
