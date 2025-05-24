@@ -10,7 +10,7 @@ const HomePage = () => {
           {/* Text Section */}
           <Col md={6} className="text-center text-md-start mt-4 mt-md-0">
             <h1 className="mb-4">
-              We help to <span className="highlight">educate</span> and <span className="highlight">engage</span> the market.
+              Welcome to  <span className="highlight">e-PTW</span>
             </h1>
             <p className="mb-4">
               Search, browse and find new micro income stream projects. Create your profile now and learn about projects at the topline.
