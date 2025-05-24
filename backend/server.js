@@ -11,11 +11,12 @@ dotenv.config();
 const PORT = process.env.PORT || 5000;
 
 const corsOptions = {
-  origin: "",
+  origin: "https://bhilai-project-22yi-qcn0kkhbx-rahul-kumar-mahtos-projects.vercel.app",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
 };
 app.use(cors(corsOptions));
+
 
 // Middleware
 app.use(express.json());
