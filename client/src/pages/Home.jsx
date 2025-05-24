@@ -1,19 +1,29 @@
-import React from 'react';
-import { Container, Row, Col, Button, Form } from 'react-bootstrap';
-import home from '../assets/home.jpg';
+import React from "react";
+import { Container, Row, Col, Button, Form } from "react-bootstrap";
+import home from "../assets/home.jpg";
 
 const HomePage = () => {
   return (
-    <div className="steel-hero-section text-white d-flex align-items-center" style={{ minHeight: '90vh', backgroundColor: '#2c3e50' }}>
+    <div
+      className="steel-hero-section text-white d-flex align-items-center"
+      style={{ minHeight: "90vh", backgroundColor: "#2c3e50" }}
+    >
       <Container>
         <Row className="align-items-center flex-column-reverse flex-md-row">
           {/* Text Section */}
           <Col md={6} className="text-center text-md-start mt-4 mt-md-0">
             <h1 className="mb-4">
-              Welcome to  <span className="highlight">e-PTW</span>
+              Welcome to{" "}
+              <span className="highlight">
+                e-PTW (Electronic Permit to Work)
+              </span>{" "}
+              - <span className="highlight"> a smart, digital solution</span>{" "}
+              for managing work permits safely and efficiently.
             </h1>
             <p className="mb-4">
-              Search, browse and find new micro income stream projects. Create your profile now and learn about projects at the topline.
+              It streamlines the approval process, ensuring real-time tracking,
+              compliance, and accountability. Enhance workplace safety and
+              reduce delays with our user-friendly and secure platform.
             </p>
             <Form className="d-flex flex-column flex-sm-row align-items-stretch">
               <Form.Control
@@ -31,7 +41,7 @@ const HomePage = () => {
               src={home}
               alt="People Illustration"
               className="img-fluid"
-              style={{ maxHeight: '400px' }}
+              style={{ maxHeight: "400px" }}
             />
           </Col>
         </Row>
