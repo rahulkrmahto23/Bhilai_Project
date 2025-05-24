@@ -1,70 +1,125 @@
 import axios from "axios";
 
-// Use environment variable or fallback to deployed backend URL
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://bhilai-project.vercel.app/api/v1/user";
+
 const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || "https://bhilai-project.vercel.app/api/v1/user",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // allows cookies to be sent/received
+  withCredentials: true,
 });
 
+// Add request interceptor to include token in headers
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle token refresh and errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Handle unauthorized access
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      window.location.href = "/login"; // Redirect to login
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Helper function to handle storage
+const setAuthStorage = (response, keepLoggedIn) => {
+  const storage = keepLoggedIn ? localStorage : sessionStorage;
+  if (response.data.token) {
+    storage.setItem("token", response.data.token);
+  }
+  if (response.data.user) {
+    storage.setItem("user", JSON.stringify(response.data.user));
+  }
+};
+
 // Login User
-export const loginUser = async (email, password) => {
+export const loginUser = async (email, password, keepLoggedIn = false) => {
   try {
-    const res = await apiClient.post("/login", { email, password });
+    const response = await apiClient.post("/login", { email, password });
+    setAuthStorage(response, keepLoggedIn);
     return {
       success: true,
-      message: res.data.message,
-      user: {
-        name: res.data.name,
-        email: res.data.email,
-        role: res.data.role,
+      message: response.data.message,
+      user: response.data.user || {
+        name: response.data.name,
+        email: response.data.email,
+        role: response.data.role,
       },
+      token: response.data.token,
     };
   } catch (error) {
-    console.error("Login Error:", error.response?.data || error.message);
     throw new Error(error.response?.data?.message || "Unable to login");
   }
 };
 
 // Signup User
-export const signupUser = async (name, email, password, role = "CLIENT") => {
+export const signupUser = async (name, email, password, role = "CLIENT", keepLoggedIn = false) => {
   try {
-    const res = await apiClient.post("/signup", {
-      name,
-      email,
-      password,
-      role,
-    });
+    const response = await apiClient.post("/signup", { name, email, password, role });
+    setAuthStorage(response, keepLoggedIn);
     return {
       success: true,
-      message: res.data.message,
-      user: {
-        name: res.data.name,
-        email: res.data.email,
-        role: res.data.role,
+      message: response.data.message,
+      user: response.data.user || {
+        name: response.data.name,
+        email: response.data.email,
+        role: response.data.role,
       },
+      token: response.data.token,
     };
   } catch (error) {
-    console.error("Signup Error:", error.response?.data || error.message);
     throw new Error(error.response?.data?.message || "Unable to signup");
+  }
+};
+
+// Verify Authentication
+export const verifyAuth = async () => {
+  try {
+    const response = await apiClient.get("/verify-auth");
+    return {
+      isAuthenticated: true,
+      user: response.data.user,
+    };
+  } catch (error) {
+    return {
+      isAuthenticated: false,
+      error: error.response?.data?.message || "Not authenticated",
+    };
   }
 };
 
 // Logout User
 export const logoutUser = async () => {
   try {
-    const res = await apiClient.get("/logout");
-    return {
-      success: true,
-      message: res.data.message,
-    };
+    await apiClient.get("/logout");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    return { success: true, message: "Logged out successfully" };
   } catch (error) {
-    console.error("Logout Error:", error.response?.data || error.message);
     throw new Error(error.response?.data?.message || "Unable to logout");
   }
 };
+
+// ... rest of your API functions remain the same ...
 
 // Add a new permit
 export const createPermit = async (permitData) => {

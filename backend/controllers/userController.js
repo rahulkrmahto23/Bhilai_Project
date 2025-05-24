@@ -31,13 +31,18 @@ exports.userSignup = async (req, res) => {
 
     await user.save();
 
+    // Clear any existing token
+    res.clearCookie(COOKIE_NAME);
+
     const token = createToken(user._id.toString(), user.email, user.role, "7d");
 
     res.cookie(COOKIE_NAME, token, {
+      path: "/",
+      domain: process.env.NODE_ENV === "production" ? ".yourdomain.com" : "localhost",
       httpOnly: true,
       signed: true,
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       secure: process.env.NODE_ENV === "production",
     });
 
@@ -46,8 +51,10 @@ exports.userSignup = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      token // Send token in response for mobile clients
     });
   } catch (error) {
+    console.error("Signup Error:", error);
     return res.status(500).json({ message: "ERROR", cause: error.message });
   }
 };
@@ -62,14 +69,18 @@ exports.userLogin = async (req, res) => {
     if (!isPasswordCorrect)
       return res.status(403).json({ message: "Incorrect Password" });
 
-    const token = createToken(user._id.toString(), user.email, user.role);
+    // Clear any existing token
+    res.clearCookie(COOKIE_NAME);
+
+    const token = createToken(user._id.toString(), user.email, user.role, "7d");
 
     res.cookie(COOKIE_NAME, token, {
       path: "/",
+      domain: process.env.NODE_ENV === "production" ? ".yourdomain.com" : "localhost",
       httpOnly: true,
       signed: true,
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       secure: process.env.NODE_ENV === "production",
     });
 
@@ -78,16 +89,52 @@ exports.userLogin = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      token // Send token in response for mobile clients
     });
   } catch (error) {
+    console.error("Login Error:", error);
     return res.status(500).json({ message: "ERROR", cause: error.message });
   }
 };
 
 exports.userLogout = (req, res) => {
-  res.clearCookie(COOKIE_NAME);
+  res.clearCookie(COOKIE_NAME, {
+    path: "/",
+    domain: process.env.NODE_ENV === "production" ? ".yourdomain.com" : "localhost",
+    httpOnly: true,
+    signed: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
   return res.status(200).json({ message: "Successfully Logged Out" });
 };
+
+exports.verifyAuth = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+    
+    return res.status(200).json({
+      isAuthenticated: true,
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error("Auth Verification Error:", error);
+    return res.status(500).json({ message: "Authentication check failed" });
+  }
+};
+
+// ... rest of your controller methods remain the same ...
 
 exports.createPermit = async (req, res) => {
   try {
