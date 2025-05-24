@@ -1,7 +1,8 @@
 import axios from "axios";
 
+// Use environment variable or fallback to deployed backend URL
 const apiClient = axios.create({
-  baseURL: "http://localhost:7000/api/v1/user",
+  baseURL: process.env.REACT_APP_API_BASE_URL || "https://bhilai-project.vercel.app/api/v1/user",
   headers: {
     "Content-Type": "application/json",
   },
@@ -64,6 +65,7 @@ export const logoutUser = async () => {
     throw new Error(error.response?.data?.message || "Unable to logout");
   }
 };
+
 // Add a new permit
 export const createPermit = async (permitData) => {
   const res = await apiClient.post("/add-permit", permitData);
@@ -114,19 +116,14 @@ export const deletePermit = async (id) => {
       permit: res.data.permit,
     };
   } catch (error) {
-    console.error(
-      "Delete Permit Error:",
-      error.response?.data || error.message
-    );
+    console.error("Delete Permit Error:", error.response?.data || error.message);
     throw new Error(error.response?.data?.message || "Unable to delete permit");
   }
 };
 
 // Search permits by query
-
 export const searchPermits = async (queryParams) => {
   try {
-    // Prepare query parameters
     const params = {};
     
     if (queryParams.poNumber) params.poNumber = queryParams.poNumber;
@@ -134,8 +131,6 @@ export const searchPermits = async (queryParams) => {
     if (queryParams.permitStatus && queryParams.permitStatus !== 'ALL') {
       params.permitStatus = queryParams.permitStatus;
     }
-    
-    // Date handling
     if (queryParams.startDate) {
       params.startDate = queryParams.startDate.toISOString();
     }
@@ -145,7 +140,6 @@ export const searchPermits = async (queryParams) => {
 
     const response = await apiClient.get("/search-permits", { params });
 
-    // Ensure response has the expected structure
     if (!response.data) {
       throw new Error("Invalid response from server");
     }
@@ -153,7 +147,7 @@ export const searchPermits = async (queryParams) => {
     return {
       success: true,
       message: response.data.message || "Search completed",
-      permits: response.data.permits || []
+      permits: response.data.permits || [],
     };
   } catch (error) {
     console.error("Search Permit Error:", error);
