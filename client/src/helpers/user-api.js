@@ -9,150 +9,152 @@ const apiClient = axios.create({
   withCredentials: true, // allows cookies to be sent/received
 });
 
-// Helper function to handle API responses consistently
-const handleResponse = (response) => {
-  return {
-    success: response.data.success || true,
-    message: response.data.message || "Operation successful",
-    data: response.data.data || response.data,
-  };
-};
-
-// Helper function to handle errors consistently
-const handleError = (error) => {
-  console.error("API Error:", error.response?.data || error.message);
-  
-  const errorMessage = error.response?.data?.message || 
-                      error.message || 
-                      "An unexpected error occurred";
-  
-  const errorDetails = {
-    success: false,
-    message: errorMessage,
-    error: error.response?.data?.error || error.message,
-    status: error.response?.status,
-  };
-  
-  throw errorDetails; // Throw the error object to be caught by the caller
-};
-
-// Auth API Methods
-
+// Login User
 export const loginUser = async (email, password) => {
   try {
-    const response = await apiClient.post("/login", { email, password });
-    return handleResponse(response);
+    const res = await apiClient.post("/login", { email, password });
+    return {
+      success: true,
+      message: res.data.message,
+      user: {
+        name: res.data.name,
+        email: res.data.email,
+        role: res.data.role,
+      },
+    };
   } catch (error) {
-    return handleError(error);
+    console.error("Login Error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Unable to login");
   }
 };
 
+// Signup User
 export const signupUser = async (name, email, password, role = "CLIENT") => {
   try {
-    const response = await apiClient.post("/signup", {
+    const res = await apiClient.post("/signup", {
       name,
       email,
       password,
       role,
     });
-    return handleResponse(response);
+    return {
+      success: true,
+      message: res.data.message,
+      user: {
+        name: res.data.name,
+        email: res.data.email,
+        role: res.data.role,
+      },
+    };
   } catch (error) {
-    return handleError(error);
+    console.error("Signup Error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Unable to signup");
   }
 };
 
+// Logout User
 export const logoutUser = async () => {
   try {
-    const response = await apiClient.get("/logout");
-    return handleResponse(response);
+    const res = await apiClient.get("/logout");
+    return {
+      success: true,
+      message: res.data.message,
+    };
   } catch (error) {
-    return handleError(error);
+    console.error("Logout Error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Unable to logout");
   }
 };
 
-// Permit API Methods
-
+// Add a new permit
 export const createPermit = async (permitData) => {
-  try {
-    const response = await apiClient.post("/add-permit", permitData);
-    return handleResponse(response);
-  } catch (error) {
-    return handleError(error);
-  }
+  const res = await apiClient.post("/add-permit", permitData);
+  return {
+    success: true,
+    message: res.data.message,
+    permit: res.data.permit,
+  };
 };
 
+// Get all permits
 export const getAllPermits = async () => {
   try {
-    const response = await apiClient.get("/permits");
-    return handleResponse(response);
+    const res = await apiClient.get("/permits");
+    return {
+      success: true,
+      message: res.data.message,
+      permits: res.data.permits,
+    };
   } catch (error) {
-    return handleError(error);
+    console.error("Get Permits Error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Unable to fetch permits");
   }
 };
 
-export const getPermitById = async (id) => {
-  try {
-    const response = await apiClient.get(`/permits/${id}`);
-    return handleResponse(response);
-  } catch (error) {
-    return handleError(error);
-  }
-};
-
+// Edit a permit by ID
 export const updatePermit = async (id, updatedData) => {
   try {
-    const response = await apiClient.put(`/edit-permit/${id}`, updatedData);
-    return handleResponse(response);
+    const res = await apiClient.put(`/edit-permit/${id}`, updatedData);
+    return {
+      success: true,
+      message: res.data.message,
+      permit: res.data.permit,
+    };
   } catch (error) {
-    return handleError(error);
+    console.error("Edit Permit Error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Unable to edit permit");
   }
 };
 
+// Delete a permit by ID
 export const deletePermit = async (id) => {
   try {
-    const response = await apiClient.delete(`/delete-permit/${id}`);
-    return handleResponse(response);
+    const res = await apiClient.delete(`/delete-permit/${id}`);
+    return {
+      success: true,
+      message: res.data.message,
+      permit: res.data.permit,
+    };
   } catch (error) {
-    return handleError(error);
+    console.error("Delete Permit Error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Unable to delete permit");
   }
 };
 
+// Search permits by query
 export const searchPermits = async (queryParams) => {
   try {
-    // Convert dates to ISO strings if they exist
-    const processedParams = { ...queryParams };
+    const params = {};
     
+    if (queryParams.poNumber) params.poNumber = queryParams.poNumber;
+    if (queryParams.permitNumber) params.permitNumber = queryParams.permitNumber;
+    if (queryParams.permitStatus && queryParams.permitStatus !== 'ALL') {
+      params.permitStatus = queryParams.permitStatus;
+    }
     if (queryParams.startDate) {
-      processedParams.startDate = queryParams.startDate.toISOString();
+      params.startDate = queryParams.startDate.toISOString();
     }
     if (queryParams.endDate) {
-      processedParams.endDate = queryParams.endDate.toISOString();
+      params.endDate = queryParams.endDate.toISOString();
     }
 
-    const response = await apiClient.get("/search-permits", { 
-      params: processedParams 
-    });
-    
-    return handleResponse(response);
-  } catch (error) {
-    return handleError(error);
-  }
-};
+    const response = await apiClient.get("/search-permits", { params });
 
-export const getPermitStats = async () => {
-  try {
-    const response = await apiClient.get("/permits/stats");
-    return handleResponse(response);
-  } catch (error) {
-    return handleError(error);
-  }
-};
+    if (!response.data) {
+      throw new Error("Invalid response from server");
+    }
 
-// Utility function to set auth token if needed
-export const setAuthToken = (token) => {
-  if (token) {
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  } else {
-    delete apiClient.defaults.headers.common["Authorization"];
+    return {
+      success: true,
+      message: response.data.message || "Search completed",
+      permits: response.data.permits || [],
+    };
+  } catch (error) {
+    console.error("Search Permit Error:", error);
+    throw new Error(
+      error.response?.data?.message || 
+      error.message || 
+      "Unable to search permits"
+    );
   }
 };

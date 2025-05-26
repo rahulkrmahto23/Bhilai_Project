@@ -11,10 +11,10 @@ router.get("/logout", verifyToken, userController.userLogout);
 // Permit routes
 router.post("/add-permit", verifyToken, userController.createPermit);
 router.get("/permits", verifyToken, userController.getAllPermits);
-router.get("/permits/:id", verifyToken, userController.getPermitById); // Added this line
-router.put("/edit-permit/:id", verifyToken, userController.updatePermit); // Changed from editPermit to updatePermit
+router.put("/edit-permit/:id", verifyToken, userController.editPermit);
 router.delete("/delete-permit/:id", verifyToken, userController.deletePermit);
+
+// ✅ Search permits route
 router.get("/search-permits", verifyToken, userController.searchPermits);
-router.get("/permits-stats", verifyToken, userController.getPermitStats); // Added this line
 
 module.exports = router;

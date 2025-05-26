@@ -3,9 +3,7 @@ const Permit = require("../models/addPermitSchema");
 const { hash, compare } = require("bcrypt");
 const { createToken } = require("../utils/token-manager");
 const { COOKIE_NAME } = require("../utils/constrants");
-const mongoose = require("mongoose");
 
-// Auth Controllers
 exports.userSignup = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -14,19 +12,14 @@ exports.userSignup = async (req, res) => {
       const existingAdmin = await User.findOne({ role: "ADMIN" });
       if (existingAdmin) {
         return res.status(400).json({
-          success: false,
           message: "An Admin is already registered. You cannot register another Admin.",
         });
       }
     }
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(401).json({ 
-        success: false,
-        message: "User already registered" 
-      });
-    }
+    if (existingUser)
+      return res.status(401).json({ message: "User already registered" });
 
     const hashedPassword = await hash(password, 10);
     const user = new User({
@@ -49,20 +42,13 @@ exports.userSignup = async (req, res) => {
     });
 
     return res.status(201).json({
-      success: true,
       message: "User Registered",
-      data: {
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      }
+      name: user.name,
+      email: user.email,
+      role: user.role,
     });
   } catch (error) {
-    return res.status(500).json({ 
-      success: false,
-      message: "ERROR", 
-      error: error.message 
-    });
+    return res.status(500).json({ message: "ERROR", cause: error.message });
   }
 };
 
@@ -70,20 +56,11 @@ exports.userLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ 
-        success: false,
-        message: "User not registered" 
-      });
-    }
+    if (!user) return res.status(401).json({ message: "User not registered" });
 
     const isPasswordCorrect = await compare(password, user.password);
-    if (!isPasswordCorrect) {
-      return res.status(403).json({ 
-        success: false,
-        message: "Incorrect Password" 
-      });
-    }
+    if (!isPasswordCorrect)
+      return res.status(403).json({ message: "Incorrect Password" });
 
     const token = createToken(user._id.toString(), user.email, user.role);
 
@@ -97,36 +74,27 @@ exports.userLogin = async (req, res) => {
     });
 
     return res.status(200).json({
-      success: true,
       message: "Login Successful",
-      data: {
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      }
+      name: user.name,
+      email: user.email,
+      role: user.role,
     });
   } catch (error) {
-    return res.status(500).json({ 
-      success: false,
-      message: "ERROR", 
-      error: error.message 
-    });
+    return res.status(500).json({ message: "ERROR", cause: error.message });
   }
 };
 
 exports.userLogout = (req, res) => {
   res.clearCookie(COOKIE_NAME);
-  return res.status(200).json({ 
-    success: true,
-    message: "Successfully Logged Out" 
-  });
+  return res.status(200).json({ message: "Successfully Logged Out" });
 };
 
-// Permit Controllers
 exports.createPermit = async (req, res) => {
   try {
-    const userId = res.locals.jwtData.id;
-    
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized: No user context" });
+    }
+
     const {
       permitNumber,
       poNumber,
@@ -139,277 +107,117 @@ exports.createPermit = async (req, res) => {
       expiryDate,
     } = req.body;
 
-    if (!permitNumber || !employeeName || !permitType) {
-      return res.status(400).json({
-        success: false,
-        message: "Permit number, employee name, and permit type are required",
-      });
-    }
+    const createdBy = req.user.id; // ✅ FIXED (was _id)
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const newPermit = new Permit({
-      _id: new mongoose.Types.ObjectId(),
+    const permit = new Permit({
       permitNumber,
       poNumber,
       employeeName,
       permitType,
-      permitStatus: permitStatus || "PENDING",
+      permitStatus,
       location,
-      remarks: remarks || "",
-      issueDate: issueDate || new Date(),
+      remarks,
+      issueDate,
       expiryDate,
-      createdBy: userId,
-      createdAt: new Date(),
+      createdBy,
     });
 
-    await newPermit.save();
+    await permit.save();
 
-    res.status(201).json({
-      success: true,
+    return res.status(201).json({
       message: "Permit created successfully",
-      data: newPermit,
+      permit,
     });
   } catch (error) {
-    console.error("Error creating permit:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
+    console.error("🚨 Permit Creation Error:", error);
+    return res.status(500).json({ message: "Error creating permit", error: error.message });
   }
 };
 
 exports.getAllPermits = async (req, res) => {
   try {
-    const userId = res.locals.jwtData.id;
-    const user = await User.findById(userId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    const permits = await Permit.find().populate("createdBy", "name email role");
 
-    // For ADMIN, get all permits
-    // For others, get only their permits
-    const query = user.role === "ADMIN" ? {} : { createdBy: userId };
-    const permits = await Permit.find(query).populate("createdBy", "name email role");
-
-    res.status(200).json({
-      success: true,
-      message: "Permits fetched successfully",
-      data: permits,
+    return res.status(200).json({
+      message: "All permits fetched successfully",
+      permits,
     });
   } catch (error) {
-    console.error("Error fetching permits:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
+    console.error("🚨 Error fetching permits:", error);
+    return res.status(500).json({ message: "Error fetching permits", error: error.message });
   }
 };
 
-exports.getPermitById = async (req, res) => {
+exports.editPermit = async (req, res) => {
   try {
-    const userId = res.locals.jwtData.id;
-    const { permitId } = req.params;
+    const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(permitId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid permit ID",
-      });
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized: No user context" });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    // Filter out any fields that shouldn't be updated
+    const { _id, createdBy, ...updatedData } = req.body;
 
-    // For ADMIN, can view any permit
-    // For others, can only view their own permits
-    const query = user.role === "ADMIN" 
-      ? { _id: permitId } 
-      : { _id: permitId, createdBy: userId };
-
-    const permit = await Permit.findOne(query).populate("createdBy", "name email role");
-
-    if (!permit) {
-      return res.status(404).json({
-        success: false,
-        message: "Permit not found or unauthorized access",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Permit fetched successfully",
-      data: permit,
-    });
-  } catch (error) {
-    console.error("Error fetching permit:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
-};
-
-exports.updatePermit = async (req, res) => {
-  try {
-    const userId = res.locals.jwtData.id;
-    const { permitId } = req.params;
-    const updateData = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(permitId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid permit ID",
-      });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // For ADMIN, can update any permit
-    // For others, can only update their own permits
-    const query = user.role === "ADMIN" 
-      ? { _id: permitId } 
-      : { _id: permitId, createdBy: userId };
-
-    // Prevent changing createdBy and _id
-    if (updateData.createdBy || updateData._id) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot modify createdBy or permit ID",
-      });
-    }
-
-    const updatedPermit = await Permit.findOneAndUpdate(
-      query,
-      updateData,
-      { new: true, runValidators: true }
+    const updatedPermit = await Permit.findByIdAndUpdate(
+      id,
+      updatedData,
+      {
+        new: true,
+        runValidators: true,
+      }
     ).populate("createdBy", "name email role");
 
     if (!updatedPermit) {
-      return res.status(404).json({
-        success: false,
-        message: "Permit not found or unauthorized access",
-      });
+      return res.status(404).json({ message: "Permit not found" });
     }
 
-    res.status(200).json({
-      success: true,
+    return res.status(200).json({
       message: "Permit updated successfully",
-      data: updatedPermit,
+      permit: updatedPermit,
     });
   } catch (error) {
     console.error("Error updating permit:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
+    return res.status(500).json({ 
+      message: "Error updating permit", 
+      error: error.message 
     });
   }
 };
-
 exports.deletePermit = async (req, res) => {
   try {
-    const userId = res.locals.jwtData.id;
-    const { permitId } = req.params;
+    const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(permitId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid permit ID",
-      });
+    // Optional: Validate user access (e.g., only the creator or admin can delete)
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized: No user context" });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // For ADMIN, can delete any permit
-    // For others, can only delete their own permits
-    const query = user.role === "ADMIN" 
-      ? { _id: permitId } 
-      : { _id: permitId, createdBy: userId };
-
-    const deletedPermit = await Permit.findOneAndDelete(query);
+    const deletedPermit = await Permit.findByIdAndDelete(id);
 
     if (!deletedPermit) {
-      return res.status(404).json({
-        success: false,
-        message: "Permit not found or unauthorized access",
-      });
+      return res.status(404).json({ message: "Permit not found" });
     }
 
-    res.status(200).json({
-      success: true,
+    return res.status(200).json({
       message: "Permit deleted successfully",
-      data: deletedPermit,
+      permit: deletedPermit,
     });
   } catch (error) {
-    console.error("Error deleting permit:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
+    console.error("🚨 Error deleting permit:", error);
+    return res.status(500).json({ message: "Error deleting permit", error: error.message });
   }
 };
 
 exports.searchPermits = async (req, res) => {
   try {
-    const userId = res.locals.jwtData.id;
-    const { 
-      poNumber, 
-      permitNumber, 
-      permitStatus, 
-      startDate, 
-      endDate,
-      employeeName,
-      permitType 
-    } = req.query;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    const { poNumber, permitNumber, permitStatus, startDate, endDate } = req.query;
 
     // Build the search query dynamically
-    const searchQuery = user.role === "ADMIN" ? {} : { createdBy: userId };
+    const searchQuery = {};
     
     if (poNumber) searchQuery.poNumber = { $regex: poNumber, $options: 'i' };
     if (permitNumber) searchQuery.permitNumber = { $regex: permitNumber, $options: 'i' };
-    if (employeeName) searchQuery.employeeName = { $regex: employeeName, $options: 'i' };
-    if (permitType) searchQuery.permitType = { $regex: permitType, $options: 'i' };
-    
     if (permitStatus && permitStatus !== 'ALL') {
       searchQuery.permitStatus = { $regex: permitStatus, $options: 'i' };
     }
@@ -421,68 +229,27 @@ exports.searchPermits = async (req, res) => {
       if (endDate) searchQuery.issueDate.$lte = new Date(endDate);
     }
 
+    // Execute query with proper error handling
     const permits = await Permit.find(searchQuery)
       .populate("createdBy", "name email role")
-      .sort({ createdAt: -1 });
+      .lean(); // Convert to plain JavaScript objects
 
-    res.status(200).json({
-      success: true,
-      message: permits.length > 0 
-        ? "Search results fetched successfully" 
-        : "No permits found matching your criteria",
-      data: permits,
-    });
-  } catch (error) {
-    console.error("Error searching permits:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error searching permits",
-      error: error.message,
-    });
-  }
-};
-
-// Additional utility endpoints
-exports.getPermitStats = async (req, res) => {
-  try {
-    const userId = res.locals.jwtData.id;
-    const user = await User.findById(userId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
+    if (!permits || permits.length === 0) {
+      return res.status(200).json({
+        message: "No permits found matching your criteria",
+        permits: []
       });
     }
 
-    const query = user.role === "ADMIN" ? {} : { createdBy: userId };
-    
-    const totalPermits = await Permit.countDocuments(query);
-    const pendingPermits = await Permit.countDocuments({ ...query, permitStatus: 'PENDING' });
-    const approvedPermits = await Permit.countDocuments({ ...query, permitStatus: 'APPROVED' });
-    const rejectedPermits = await Permit.countDocuments({ ...query, permitStatus: 'REJECTED' });
-    const expiredPermits = await Permit.countDocuments({ 
-      ...query, 
-      expiryDate: { $lt: new Date() } 
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Permit statistics fetched successfully",
-      data: {
-        totalPermits,
-        pendingPermits,
-        approvedPermits,
-        rejectedPermits,
-        expiredPermits
-      }
+    return res.status(200).json({
+      message: "Search results fetched successfully",
+      permits,
     });
   } catch (error) {
-    console.error("Error fetching permit stats:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching permit statistics",
-      error: error.message,
+    console.error("Error searching permits:", error);
+    return res.status(500).json({ 
+      message: "Error searching permits", 
+      error: error.message 
     });
   }
 };
